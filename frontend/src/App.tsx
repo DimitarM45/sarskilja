@@ -1,28 +1,37 @@
-import {useState} from 'react';
-import logo from './assets/images/logo-universal.png';
+import {EditorContent, useEditor} from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 import './App.css';
-import {Greet} from "../wailsjs/go/main/App";
 
 function App() {
-    const [resultText, setResultText] = useState("Please enter your name below 👇");
-    const [name, setName] = useState('');
-    const updateName = (e: any) => setName(e.target.value);
-    const updateResultText = (result: string) => setResultText(result);
-
-    function greet() {
-        Greet(name).then(updateResultText);
-    }
+    const editor = useEditor({
+        extensions: [StarterKit],
+        content: '',
+        // Caret sits in the document on open; no click needed to start typing.
+        autofocus: 'end',
+        editorProps: {
+            attributes: {
+                class: 'manuscript',
+                spellcheck: 'true',
+            },
+        },
+    });
 
     return (
-        <div id="App">
-            <img src={logo} id="logo" alt="logo"/>
-            <div id="result" className="result">{resultText}</div>
-            <div id="input" className="input-box">
-                <input id="name" className="input" onChange={updateName} autoComplete="off" name="input" type="text"/>
-                <button className="btn" onClick={greet}>Greet</button>
-            </div>
+        <div id="App" className="app-shell">
+            <header className="title-bar">
+                <input
+                    className="doc-title"
+                    placeholder="Untitled"
+                    aria-label="Document title"
+                    spellCheck={false}
+                    autoComplete="off"
+                />
+            </header>
+            <main className="editor-surface">
+                <EditorContent editor={editor}/>
+            </main>
         </div>
-    )
+    );
 }
 
 export default App
