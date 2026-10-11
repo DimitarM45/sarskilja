@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.filter.outputs.go }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            go:
+              - 'go.mod'
+              - 'go.sum'
+              - '**/*.go'
+              - 'wails.json'
+              - 'build/**'
+            frontend:
+              - 'frontend/**'
+
+  go:
+    if: needs.detect.outputs.go == 'true'
+    needs: detect
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Install webkit2gtk 4.1 dev headers
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev
+      - name: Vet
+        run: go vet -tags webkit2_41 ./...
+      - name: Build
+        run: go build -tags webkit2_41 ./...
+
+  frontend:
+    if: needs.detect.outputs.frontend == 'true'
+    needs: detect
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck + production build
+        run: npm run build
+
+  wails-build:
+    needs: [detect, go, frontend]
+    if: >-
+      always() &&
+      (needs.detect.outputs.go == 'true' || needs.detect.outputs.frontend == 'true') &&
+      (needs.go.result == 'success' || needs.go.result == 'skipped') &&
+      (needs.frontend.result == 'success' || needs.frontend.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install webkit2gtk 4.1 dev headers
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.16.0
+      - name: Build application
+        run: wails build -tags webkit2_41
+      - name: Upload artifact
+        if: github.ref_name == 'main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarskilja-linux-amd64
+          path: build/bin/*
+          if-no-files-found: error
