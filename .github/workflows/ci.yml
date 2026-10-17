@@ -38,10 +38,15 @@ jobs:
 
   go:
     if: needs.detect.outputs.go == 'true'
-    needs: detect
+    needs: [detect, frontend]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Download frontend bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -55,7 +60,6 @@ jobs:
         run: go build -tags webkit2_41 ./...
 
   frontend:
-    if: needs.detect.outputs.frontend == 'true'
     needs: detect
     runs-on: ubuntu-latest
     defaults:
@@ -72,6 +76,11 @@ jobs:
         run: npm ci
       - name: Typecheck + production build
         run: npm run build
+      - name: Upload bundle for go and wails jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
 
   wails-build:
     needs: [detect, go, frontend]

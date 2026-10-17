@@ -4,3 +4,6 @@ frontend/dist
 frontend/wailsjs
 frontend/package.json.md5
 sarskilja
+
+# local, untracked agent lessons
+AGENTS.local.md

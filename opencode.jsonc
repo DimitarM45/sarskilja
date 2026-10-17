@@ -1,0 +1,5 @@
+# opencode.jsonc — tracked so the private companion file rules resolve on any clone.
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["AGENTS.local.md"]
+}
