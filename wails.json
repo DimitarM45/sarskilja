@@ -6,8 +6,8 @@
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
+  "build:tags": "webkit2_41",
   "author": {
-    "name": "Dimitar Minchev",
-    "email": "dimitar45minchev@gmail.com"
+    "name": "Dimitar Minchev"
   }
 }
